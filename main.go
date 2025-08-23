@@ -5,8 +5,6 @@ import (
 	"os"
 	"time"
 
-	_ "time/tzdata"
-
 	calc "github.com/mnadev/adhango/pkg/calc"
 )
 

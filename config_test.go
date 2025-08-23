@@ -42,7 +42,7 @@ func TestLoadFromFile_ValidConfig(t *testing.T) {
 
 // Test loading a config when the directory does not exist
 func TestLoadFromFile_CreateMissingDirectory(t *testing.T) {
-	dir := t.TempDir()                   // temporary directory
+	dir := t.TempDir()                                        // temporary directory
 	configPath := filepath.Join(dir, "subdir", "config.json") // intentionally missing subdir
 
 	// write a valid JSON file after creating parent dir
@@ -103,7 +103,6 @@ func TestGetConfigPath_UnsupportedOS(t *testing.T) {
 		t.Fatal("expected error for unsupported OS, got nil")
 	}
 }
-
 
 // Test LoadFromFile with invalid JSON
 func TestLoadFromFile_InvalidJSON(t *testing.T) {

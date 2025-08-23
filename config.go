@@ -37,7 +37,6 @@ var getEnv = os.Getenv
 // For testability, allow overriding the OS
 var getOS = func() string { return runtime.GOOS }
 
-
 // getConfigPath determines the default path for the config file
 func getConfigPath() (string, error) {
 	switch getOS() {
