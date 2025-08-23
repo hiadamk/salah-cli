@@ -1,0 +1,87 @@
+package main
+
+import (
+	"fmt"
+	"os"
+	"time"
+
+	_ "time/tzdata"
+
+	calc "github.com/mnadev/adhango/pkg/calc"
+)
+
+var prayerNames = map[calc.Prayer]string{
+	calc.FAJR:    "Fajr",
+	calc.DHUHR:   "Dhuhr",
+	calc.ASR:     "Asr",
+	calc.MAGHRIB: "Maghrib",
+	calc.ISHA:    "Isha",
+}
+
+func printHelp() {
+	fmt.Println("Usage:")
+	fmt.Println("  salah-cli today       Show today's prayer times")
+	fmt.Println("  salah-cli next        Show the next upcoming prayer time")
+	os.Exit(0)
+}
+
+func main() {
+	if len(os.Args) < 2 || os.Args[1] == "--help" || os.Args[1] == "-h" {
+		printHelp()
+		return
+	}
+
+	// Load configuration
+	config, err := load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
+		os.Exit(1)
+	}
+
+	params, err := buildCalculationParams(config)
+	if err != nil {
+		fmt.Println("Error building calculation parameters:", err)
+		os.Exit(1)
+	}
+
+	command := os.Args[1]
+
+	switch command {
+	case "today":
+		todays, err := getTodaysPrayerTimes(config, params)
+		if err != nil {
+			fmt.Println("Failed to get today's prayer times:", err)
+			os.Exit(1)
+		}
+		fmt.Println(formatPrayerTimes(todays))
+
+	case "next":
+		todays, err := getTodaysPrayerTimes(config, params)
+		if err != nil {
+			fmt.Println("Failed to get today's prayer times:", err)
+			os.Exit(1)
+		}
+
+		tomorrows, err := getTomorrowsPrayerTimes(config, params)
+		if err != nil {
+			fmt.Println("Failed to get tomorrow's prayer times:", err)
+			os.Exit(1)
+		}
+
+		name, t, err := nextPrayerInfo(todays, tomorrows, time.Local, prayerNames)
+		if err != nil {
+			fmt.Println("Error determining next prayer:", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Upcoming: %s %s\n", name, t.Format("15:04"))
+
+	case "help", "--help", "-h":
+		printHelp()
+
+	default:
+		fmt.Println("Unknown command:", command)
+		printHelp()
+		os.Exit(1)
+	}
+}
