@@ -51,7 +51,7 @@ func main() {
 			fmt.Println("Failed to get today's prayer times:", err)
 			os.Exit(1)
 		}
-		fmt.Println(formatPrayerTimes(todays))
+		fmt.Println(formatPrayerTimes(todays, config))
 
 	case "next":
 		todays, err := getTodaysPrayerTimes(config, params)
@@ -72,7 +72,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Printf("Upcoming: %s %s\n", name, t.Format("15:04"))
+		fmt.Println(formatNextPrayerInfo(name, t, config))
 
 	case "help", "--help", "-h":
 		printHelp()

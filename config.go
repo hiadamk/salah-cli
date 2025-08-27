@@ -23,6 +23,11 @@ type Config struct {
 	HighLatitudeRule  *int                    `json:"high_latitude_rule,omitempty"`
 	Adjustments       *calc.PrayerAdjustments `json:"adjustments,omitempty"`
 	MethodAdjustments *calc.PrayerAdjustments `json:"method_adjustments,omitempty"`
+
+	// User Preferences
+	EnableCountdown    bool   `json:"enable_countdown"`
+	EnableHighlighting bool   `json:"enable_highlighting"`
+	HighlightColour    string `json:"highlight_colour"`
 }
 
 const (

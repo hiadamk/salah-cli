@@ -4,32 +4,11 @@
 
 * Interactive setup wizard (`salah-cli setup`).
 * Config validation (`salah-cli validate-config`).
-* Config overrides via CLI flags (`--latitude`, `--longitude`, etc.).
-* Support multiple saved locations (`--location=home`).
-
-### **Prayer Times**
-
-* Weekly/monthly timetable commands (`salah-cli week`, `salah-cli month`).
-* Countdown to next prayer (`salah-cli next --countdown`).
-* Highlight ongoing/current prayer in output.
-* Export to `.ics` calendar files.
-
-### **Location Handling**
-
-* Auto-detect location via IP/geolocation API.
-
-### **Notifications & Integrations**
-
-* Desktop notifications (`notify-send`, native Mac/Windows notifications).
-* Cronjob integration to notify automatically.
-* Local REST API mode (`salah-cli serve`) for programmatic access.
 
 ### **User Experience Enhancements**
 
 * Custom output formats (JSON, table, plain text).
-* Colorized/pretty CLI output.
 * Command for config documentation (`salah-cli config-docs`).
-* Verbose/debug output to show internal calculations.
 
 ---
 
