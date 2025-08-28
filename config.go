@@ -70,7 +70,7 @@ func getConfigPath() (string, error) {
 	}
 }
 
-// loadFromFile loads config from a given file path
+// loadFromFile loads config from a given file path with validation
 func loadFromFile(path string) (*Config, error) {
 	// Ensure the config directory exists
 	dir := filepath.Dir(path)
@@ -87,9 +87,18 @@ func loadFromFile(path string) (*Config, error) {
 	defer file.Close()
 
 	var cfg Config
-	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
+	decoder := json.NewDecoder(file)
+	decoder.DisallowUnknownFields() // fail if unexpected keys are found
+
+	if err := decoder.Decode(&cfg); err != nil {
 		return nil, fmt.Errorf("error decoding JSON from %s: %w", path, err)
 	}
+
+	// Run validation checks
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config in %s: %w", path, err)
+	}
+
 	return &cfg, nil
 }
 
@@ -100,4 +109,40 @@ func load() (*Config, error) {
 		return nil, err
 	}
 	return loadFromFile(path)
+}
+
+// Validate checks for semantic errors in the configuration
+func (c *Config) Validate() error {
+	// Latitude must be -90..90
+	if c.Latitude < -90 || c.Latitude > 90 {
+		return fmt.Errorf("latitude must be between -90 and 90 (got %f)", c.Latitude)
+	}
+
+	// Longitude must be -180..180
+	if c.Longitude < -180 || c.Longitude > 180 {
+		return fmt.Errorf("longitude must be between -180 and 180 (got %f)", c.Longitude)
+	}
+
+	// Highlight colour must be valid if provided
+	if c.EnableHighlighting && c.HighlightColour != "" {
+		if _, ok := ansiColors[c.HighlightColour]; !ok {
+			return fmt.Errorf("invalid highlight colour '%s'. Allowed: %v", c.HighlightColour, keys(ansiColors))
+		}
+	}
+
+	// If both isha_angle and isha_interval are set, that’s a conflict
+	if c.IshaAngle != nil && c.IshaInterval != nil {
+		return fmt.Errorf("only one of isha_angle or isha_interval can be set")
+	}
+
+	return nil
+}
+
+// keys returns the keys of a string map (helper for error messages)
+func keys(m map[string]string) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
 }

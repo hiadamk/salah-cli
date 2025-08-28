@@ -128,3 +128,87 @@ func TestLoadFromFile_MissingFile(t *testing.T) {
 		t.Fatal("expected error for missing file, got nil")
 	}
 }
+
+func TestConfigValidate(t *testing.T) {
+	tests := []struct {
+		name      string
+		cfg       Config
+		expectErr bool
+	}{
+		{
+			name: "valid config",
+			cfg: Config{
+				Latitude:           40.0,
+				Longitude:          -70.0,
+				EnableHighlighting: true,
+				HighlightColour:    "green",
+			},
+			expectErr: false,
+		},
+		{
+			name: "latitude out of range",
+			cfg: Config{
+				Latitude:  100.0,
+				Longitude: 0.0,
+			},
+			expectErr: true,
+		},
+		{
+			name: "longitude out of range",
+			cfg: Config{
+				Latitude:  0.0,
+				Longitude: 200.0,
+			},
+			expectErr: true,
+		},
+		{
+			name: "invalid highlight colour",
+			cfg: Config{
+				Latitude:           10.0,
+				Longitude:          10.0,
+				EnableHighlighting: true,
+				HighlightColour:    "notacolour",
+			},
+			expectErr: true,
+		},
+		{
+			name: "isha angle and interval conflict",
+			cfg: Config{
+				Latitude:     10.0,
+				Longitude:    10.0,
+				IshaAngle:    floatPtr(15.0),
+				IshaInterval: intPtr(20),
+			},
+			expectErr: true,
+		},
+		{
+			name: "highlighting disabled ignores colour",
+			cfg: Config{
+				Latitude:        10.0,
+				Longitude:       10.0,
+				HighlightColour: "notacolour", // should be fine since highlighting is off
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cfg.Validate()
+			if tt.expectErr && err == nil {
+				t.Errorf("expected error but got nil")
+			}
+			if !tt.expectErr && err != nil {
+				t.Errorf("expected no error but got %v", err)
+			}
+		})
+	}
+}
+
+func floatPtr(v float64) *float64 {
+	return &v
+}
+
+func intPtr(v int) *int {
+	return &v
+}
