@@ -23,6 +23,19 @@ func printHelp() {
 	os.Exit(0)
 }
 
+func runValidateConfig() {
+	cfg, err := load()
+	if err != nil {
+		fmt.Printf("❌ Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+	if err := cfg.Validate(); err != nil {
+		fmt.Printf("❌ Invalid config: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("✅ Config is valid!")
+}
+
 func main() {
 	if len(os.Args) < 2 || os.Args[1] == "--help" || os.Args[1] == "-h" {
 		printHelp()
@@ -73,6 +86,8 @@ func main() {
 		}
 
 		fmt.Println(formatNextPrayerInfo(name, t, config))
+	case "validate-config":
+		runValidateConfig()
 
 	case "help", "--help", "-h":
 		printHelp()

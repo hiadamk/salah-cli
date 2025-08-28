@@ -3,11 +3,9 @@
 ### **Configuration & Setup**
 
 * Interactive setup wizard (`salah-cli setup`).
-* Config validation (`salah-cli validate-config`).
 
 ### **User Experience Enhancements**
 
-* Custom output formats (JSON, table, plain text).
 * Command for config documentation (`salah-cli config-docs`).
 
 ---
@@ -18,7 +16,6 @@
 
 * Refactor into proper packages (`cmd`, `internal`, `pkg`) for testability & scalability.
 * Abstract dependencies (time, filesystem, environment variables) to enable mocking in tests.
-* Consistent error handling (centralized error logger or structured errors).
 
 ### **Testing & Reliability**
 
