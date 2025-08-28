@@ -18,8 +18,9 @@ var prayerNames = map[calc.Prayer]string{
 
 func printHelp() {
 	fmt.Println("Usage:")
-	fmt.Println("  salah-cli today       Show today's prayer times")
-	fmt.Println("  salah-cli next        Show the next upcoming prayer time")
+	fmt.Println("  salah-cli today             Show today's prayer times")
+	fmt.Println("  salah-cli next              Show the next upcoming prayer time")
+	fmt.Println("  salah-cli validate-config   Validate the config file")
 	os.Exit(0)
 }
 
