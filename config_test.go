@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -211,4 +212,113 @@ func floatPtr(v float64) *float64 {
 
 func intPtr(v int) *int {
 	return &v
+}
+
+// -----------------------
+// Tests for attemptAtomicRename
+// -----------------------
+func TestAttemptAtomicRename_Success(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "temp.txt")
+	targetFile := filepath.Join(tmpDir, "target.txt")
+
+	if err := os.WriteFile(tmpFile, []byte("test"), 0o644); err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+
+	if err := attemptAtomicRename(tmpFile, targetFile); err != nil {
+		t.Fatalf("expected rename to succeed, got %v", err)
+	}
+
+	if _, err := os.Stat(targetFile); os.IsNotExist(err) {
+		t.Fatalf("target file does not exist after rename")
+	}
+
+	if _, err := os.Stat(tmpFile); !os.IsNotExist(err) {
+		t.Fatalf("temp file should be removed after rename")
+	}
+}
+
+func TestAttemptAtomicRename_TargetExists(t *testing.T) {
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "temp.txt")
+	targetFile := filepath.Join(tmpDir, "target.txt")
+
+	if err := os.WriteFile(tmpFile, []byte("temp"), 0o644); err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	if err := os.WriteFile(targetFile, []byte("existing"), 0o644); err != nil {
+		t.Fatalf("failed to create target file: %v", err)
+	}
+
+	if err := attemptAtomicRename(tmpFile, targetFile); err != nil {
+		t.Fatalf("expected rename with existing target to succeed, got %v", err)
+	}
+
+	data, _ := os.ReadFile(targetFile)
+	if string(data) != "temp" {
+		t.Fatalf("target file content not replaced correctly")
+	}
+
+	if _, err := os.Stat(tmpFile); !os.IsNotExist(err) {
+		t.Fatalf("temp file should be removed after rename")
+	}
+}
+
+// -----------------------
+// Tests for saveConfig
+// -----------------------
+func TestSaveConfig_CreatesFileAndDirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := &Config{Latitude: 51.5, Longitude: -0.1}
+
+	targetFile := filepath.Join(tmpDir, "nested", "config.json")
+	if err := saveConfig(cfg, targetFile); err != nil {
+		t.Fatalf("saveConfig failed: %v", err)
+	}
+
+	// check file exists
+	if _, err := os.Stat(targetFile); os.IsNotExist(err) {
+		t.Fatalf("config file not created")
+	}
+
+	// check contents
+	data, err := os.ReadFile(targetFile)
+	if err != nil {
+		t.Fatalf("failed to read config file: %v", err)
+	}
+
+	var readCfg Config
+	if err := json.Unmarshal(data, &readCfg); err != nil {
+		t.Fatalf("failed to decode config JSON: %v", err)
+	}
+
+	if readCfg.Latitude != cfg.Latitude || readCfg.Longitude != cfg.Longitude {
+		t.Fatalf("config contents do not match")
+	}
+}
+
+func TestSaveConfig_AtomicOverwrite(t *testing.T) {
+	tmpDir := t.TempDir()
+	targetFile := filepath.Join(tmpDir, "config.json")
+
+	cfg1 := &Config{Latitude: 1.1, Longitude: 2.2}
+	if err := saveConfig(cfg1, targetFile); err != nil {
+		t.Fatalf("initial save failed: %v", err)
+	}
+
+	cfg2 := &Config{Latitude: 3.3, Longitude: 4.4}
+	if err := saveConfig(cfg2, targetFile); err != nil {
+		t.Fatalf("overwrite save failed: %v", err)
+	}
+
+	data, _ := os.ReadFile(targetFile)
+	var readCfg Config
+	if err := json.Unmarshal(data, &readCfg); err != nil {
+		t.Fatalf("failed to decode JSON: %v", err)
+	}
+
+	if readCfg.Latitude != cfg2.Latitude || readCfg.Longitude != cfg2.Longitude {
+		t.Fatalf("overwrite did not update file correctly")
+	}
 }

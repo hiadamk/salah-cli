@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 
+	"github.com/charmbracelet/huh"
 	calc "github.com/mnadev/adhango/pkg/calc"
 )
 
@@ -111,16 +113,30 @@ func load() (*Config, error) {
 	return loadFromFile(path)
 }
 
+func validateLatitude(latitude float64) error {
+	if latitude < -90 || latitude > 90 {
+		return fmt.Errorf("latitude must be between -90 and 90 (got %f)", latitude)
+	}
+	return nil
+}
+
+func validateLongitude(longitude float64) error {
+	// Longitude must be -180..180
+	if longitude < -180 || longitude > 180 {
+		return fmt.Errorf("longitude must be between -180 and 180 (got %f)", longitude)
+	}
+	return nil
+}
+
 // Validate checks for semantic errors in the configuration
 func (c *Config) Validate() error {
 	// Latitude must be -90..90
-	if c.Latitude < -90 || c.Latitude > 90 {
-		return fmt.Errorf("latitude must be between -90 and 90 (got %f)", c.Latitude)
+	if err := validateLatitude(c.Latitude); err != nil {
+		return err
 	}
 
-	// Longitude must be -180..180
-	if c.Longitude < -180 || c.Longitude > 180 {
-		return fmt.Errorf("longitude must be between -180 and 180 (got %f)", c.Longitude)
+	if err := validateLongitude(c.Longitude); err != nil {
+		return err
 	}
 
 	// Highlight colour must be valid if provided
@@ -145,4 +161,153 @@ func keys(m map[string]string) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+func setupConfig() (*Config, error) {
+	var config Config
+
+	var latitude string
+	var longitude string
+	var madhab int
+	var moonsightingMethod int
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Enter your latitude:").
+				Value(&latitude).
+				Validate(func(str string) error {
+					if str == "" {
+						return fmt.Errorf("value can't be empty")
+					}
+					fl, err := strconv.ParseFloat(str, 64)
+					if err != nil {
+						return fmt.Errorf("failed to parse latitude value: %v", err)
+					}
+					return validateLatitude(fl)
+
+				}),
+
+			huh.NewInput().
+				Title("Enter your longitude:").
+				Value(&longitude).
+				Validate(func(str string) error {
+					if str == "" {
+						return fmt.Errorf("value can't be empty")
+					}
+					fl, err := strconv.ParseFloat(str, 64)
+					if err != nil {
+						return fmt.Errorf("failed to parse longitude value: %v", err)
+					}
+					return validateLongitude(fl)
+
+				}),
+
+			huh.NewSelect[int]().
+				Title("Choose your Madhab").
+				Options(
+					huh.NewOption("Shafi/Hanbali/Maliki", 0),
+					huh.NewOption("Hanafi", 1),
+				).
+				Value(&madhab),
+
+			huh.NewSelect[int]().
+				Title("Choose your moonsighting method").
+				Options(
+					huh.NewOption("Other", 0),
+					huh.NewOption("Muslim World League", 1),
+					huh.NewOption("Egyptian", 2),
+					huh.NewOption("Karachi", 3),
+					huh.NewOption("Umm al-Qura", 4),
+					huh.NewOption("Dubai", 5),
+					huh.NewOption("Moon Sighting Committee", 6),
+					huh.NewOption("North America (ISNA)", 7),
+					huh.NewOption("Kuwait", 8),
+					huh.NewOption("Qatar", 9),
+					huh.NewOption("Singapore", 10),
+					huh.NewOption("UOIF", 11),
+				).Value(&moonsightingMethod),
+		),
+	)
+
+	err := form.Run()
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup config: %s", err.Error())
+	}
+
+	// Ignoring error as this was previously validated
+	latFloat, _ := strconv.ParseFloat(latitude, 64)
+	config.Latitude = latFloat
+
+	lonFloat, _ := strconv.ParseFloat(longitude, 64)
+	config.Longitude = lonFloat
+	config.Method = &moonsightingMethod
+	config.Madhab = &madhab
+
+	return &config, nil
+
+}
+
+// saveConfig writes the given config to the specified filepath safely using an atomic rename
+func saveConfig(config *Config, path string) error {
+	dir := filepath.Dir(path)
+	if statErr := os.MkdirAll(dir, 0o755); statErr != nil {
+		return fmt.Errorf("failed to create config directory %s: %w", dir, statErr)
+	}
+
+	tmpFile, err := os.CreateTemp(dir, "config.json.tmp.*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+
+	// ensure temp file is removed on any early return
+	cleanupTemp := func() { _ = os.Remove(tmpPath) }
+
+	enc := json.NewEncoder(tmpFile)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(config); err != nil {
+		_ = tmpFile.Close()
+		cleanupTemp()
+		return fmt.Errorf("failed to encode config to JSON: %w", err)
+	}
+
+	if err := tmpFile.Sync(); err != nil {
+		_ = tmpFile.Close()
+		cleanupTemp()
+		return fmt.Errorf("failed to sync temp file: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		cleanupTemp()
+		return fmt.Errorf("failed to close temp file: %w", err)
+	}
+
+	if err := attemptAtomicRename(tmpPath, path); err != nil {
+		return fmt.Errorf("failed to move temp file to final location: %w", err)
+	}
+	return nil
+}
+
+func attemptAtomicRename(tmpPath, targetPath string) error {
+	// first attempt
+	if err := os.Rename(tmpPath, targetPath); err == nil {
+		return nil
+	} else {
+		// save the first rename error
+		primaryErr := err
+
+		// fallback: remove existing target and try again
+		if removeErr := os.Remove(targetPath); removeErr == nil {
+			if err2 := os.Rename(tmpPath, targetPath); err2 == nil {
+				return nil
+			} else {
+				_ = os.Remove(tmpPath)
+				return fmt.Errorf("failed to rename temp config file: %w", err2)
+			}
+		}
+
+		// couldn't remove existing target; remove temp and report original rename error
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("failed to rename temp config file: %w", primaryErr)
+	}
 }
