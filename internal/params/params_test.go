@@ -1,16 +1,17 @@
-package main
+package params
 
 import (
 	"reflect"
+	"salah-cli/internal/config"
 	"testing"
 
 	calc "github.com/mnadev/adhango/pkg/calc"
 )
 
 func TestBuildCalculationParams_Defaults(t *testing.T) {
-	cfg := &Config{Latitude: 51.5, Longitude: -0.12}
+	cfg := &config.Config{Latitude: 51.5, Longitude: -0.12}
 
-	params, err := buildCalculationParams(cfg)
+	params, err := BuildCalculationParams(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -26,9 +27,9 @@ func TestBuildCalculationParams_Defaults(t *testing.T) {
 
 func TestBuildCalculationParams_WithMethod(t *testing.T) {
 	method := int(calc.MUSLIM_WORLD_LEAGUE)
-	cfg := &Config{Method: &method}
+	cfg := &config.Config{Method: &method}
 
-	params, err := buildCalculationParams(cfg)
+	params, err := BuildCalculationParams(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -47,7 +48,7 @@ func TestBuildCalculationParams_AllOverrides(t *testing.T) {
 	highLat := int(calc.MIDDLE_OF_THE_NIGHT)
 	adj := calc.PrayerAdjustments{FajrAdj: 2, DhuhrAdj: 1}
 
-	cfg := &Config{
+	cfg := &config.Config{
 		Method:            &method,
 		FajrAngle:         &fajr,
 		IshaAngle:         &isha,
@@ -58,7 +59,7 @@ func TestBuildCalculationParams_AllOverrides(t *testing.T) {
 		MethodAdjustments: &adj,
 	}
 
-	params, err := buildCalculationParams(cfg)
+	params, err := BuildCalculationParams(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,12 +93,12 @@ func TestBuildCalculationParams_AllOverrides(t *testing.T) {
 func TestBuildCalculationParams_PartialOverrides(t *testing.T) {
 	fajr := 19.0
 	highLat := int(calc.MIDDLE_OF_THE_NIGHT)
-	cfg := &Config{
+	cfg := &config.Config{
 		FajrAngle:        &fajr,
 		HighLatitudeRule: &highLat,
 	}
 
-	params, err := buildCalculationParams(cfg)
+	params, err := BuildCalculationParams(cfg)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

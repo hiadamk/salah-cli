@@ -1,10 +1,12 @@
-package main
+package params
 
 import (
+	"salah-cli/internal/config"
+
 	"github.com/mnadev/adhango/pkg/calc"
 )
 
-func buildCalculationParams(config *Config) (*calc.CalculationParameters, error) {
+func BuildCalculationParams(config *config.Config) (*calc.CalculationParameters, error) {
 
 	var params *calc.CalculationParameters
 

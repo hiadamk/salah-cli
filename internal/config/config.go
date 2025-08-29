@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"salah-cli/internal/util"
 	"strconv"
 
 	"github.com/charmbracelet/huh"
@@ -44,8 +45,8 @@ var getEnv = os.Getenv
 // For testability, allow overriding the OS
 var getOS = func() string { return runtime.GOOS }
 
-// getConfigPath determines the default path for the config file
-func getConfigPath() (string, error) {
+// GetConfigPath determines the default path for the config file
+func GetConfigPath() (string, error) {
 	switch getOS() {
 	case "windows":
 		appData := getEnv("APPDATA")
@@ -105,8 +106,8 @@ func loadFromFile(path string) (*Config, error) {
 }
 
 // load loads config from the default config path
-func load() (*Config, error) {
-	path, err := getConfigPath()
+func Load() (*Config, error) {
+	path, err := GetConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +142,8 @@ func (c *Config) Validate() error {
 
 	// Highlight colour must be valid if provided
 	if c.EnableHighlighting && c.HighlightColour != "" {
-		if _, ok := ansiColors[c.HighlightColour]; !ok {
-			return fmt.Errorf("invalid highlight colour '%s'. Allowed: %v", c.HighlightColour, keys(ansiColors))
+		if _, ok := util.AnsiColors[c.HighlightColour]; !ok {
+			return fmt.Errorf("invalid highlight colour '%s'. Allowed: %v", c.HighlightColour, keys(util.AnsiColors))
 		}
 	}
 
@@ -163,7 +164,7 @@ func keys(m map[string]string) []string {
 	return out
 }
 
-func setupConfig() (*Config, error) {
+func SetupConfig() (*Config, error) {
 	var config Config
 
 	var latitude string
@@ -247,8 +248,8 @@ func setupConfig() (*Config, error) {
 
 }
 
-// saveConfig writes the given config to the specified filepath safely using an atomic rename
-func saveConfig(config *Config, path string) error {
+// SaveConfig writes the given config to the specified filepath safely using an atomic rename
+func SaveConfig(config *Config, path string) error {
 	dir := filepath.Dir(path)
 	if statErr := os.MkdirAll(dir, 0o755); statErr != nil {
 		return fmt.Errorf("failed to create config directory %s: %w", dir, statErr)

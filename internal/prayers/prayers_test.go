@@ -1,6 +1,8 @@
-package main
+package prayers
 
 import (
+	"salah-cli/internal/config"
+	"salah-cli/internal/params"
 	"strings"
 	"testing"
 	"time"
@@ -9,13 +11,13 @@ import (
 )
 
 func TestGetTodaysAndTomorrowsPrayerTimes(t *testing.T) {
-	cfg := &Config{Latitude: 51.5, Longitude: -0.12} // London
-	params, err := buildCalculationParams(cfg)
+	cfg := &config.Config{Latitude: 51.5, Longitude: -0.12} // London
+	params, err := params.BuildCalculationParams(cfg)
 	if err != nil {
 		t.Fatalf("failed to build params: %v", err)
 	}
 
-	today, err := getTodaysPrayerTimes(cfg, params)
+	today, err := GetTodaysPrayerTimes(cfg, params)
 	if err != nil {
 		t.Fatalf("failed to get today's prayer times: %v", err)
 	}
@@ -23,7 +25,7 @@ func TestGetTodaysAndTomorrowsPrayerTimes(t *testing.T) {
 		t.Errorf("expected non-zero Fajr time")
 	}
 
-	tomorrow, err := getTomorrowsPrayerTimes(cfg, params)
+	tomorrow, err := GetTomorrowsPrayerTimes(cfg, params)
 	if err != nil {
 		t.Fatalf("failed to get tomorrow's prayer times: %v", err)
 	}
@@ -33,22 +35,22 @@ func TestGetTodaysAndTomorrowsPrayerTimes(t *testing.T) {
 }
 
 func TestFormatPrayerTimes(t *testing.T) {
-	cfg := &Config{Latitude: 51.5, Longitude: -0.12}
-	params, _ := buildCalculationParams(cfg)
+	cfg := &config.Config{Latitude: 51.5, Longitude: -0.12}
+	params, _ := params.BuildCalculationParams(cfg)
 
-	times, _ := getTodaysPrayerTimes(cfg, params)
-	out := formatPrayerTimes(times, cfg)
+	times, _ := GetTodaysPrayerTimes(cfg, params)
+	out := FormatPrayerTimes(times, cfg)
 	if !strings.Contains(out, "Fajr") || !strings.Contains(out, "Isha") {
 		t.Errorf("expected formatted string to contain prayer names, got %q", out)
 	}
 }
 
 func TestNextPrayerInfo_TodayAndTomorrow(t *testing.T) {
-	cfg := &Config{Latitude: 51.5, Longitude: -0.12}
-	params, _ := buildCalculationParams(cfg)
+	cfg := &config.Config{Latitude: 51.5, Longitude: -0.12}
+	params, _ := params.BuildCalculationParams(cfg)
 
-	today, _ := getTodaysPrayerTimes(cfg, params)
-	tomorrow, _ := getTomorrowsPrayerTimes(cfg, params)
+	today, _ := GetTodaysPrayerTimes(cfg, params)
+	tomorrow, _ := GetTomorrowsPrayerTimes(cfg, params)
 
 	prayerNames := map[calc.Prayer]string{
 		calc.FAJR:    "Fajr",
@@ -58,7 +60,7 @@ func TestNextPrayerInfo_TodayAndTomorrow(t *testing.T) {
 		calc.ISHA:    "Isha",
 	}
 
-	name, tNext, err := nextPrayerInfo(today, tomorrow, time.Local, prayerNames)
+	name, tNext, err := NextPrayerInfo(today, tomorrow, time.Local, prayerNames)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -79,11 +81,11 @@ func TestNextPrayerInfo_AtEndOfDay(t *testing.T) {
 		return time.Date(2025, 8, 23, 23, 0, 0, 0, time.UTC)
 	}
 
-	cfg := &Config{Latitude: 51.5, Longitude: -0.12}
-	params, _ := buildCalculationParams(cfg)
+	cfg := &config.Config{Latitude: 51.5, Longitude: -0.12}
+	params, _ := params.BuildCalculationParams(cfg)
 
-	today, _ := getTodaysPrayerTimes(cfg, params)
-	tomorrow, _ := getTomorrowsPrayerTimes(cfg, params)
+	today, _ := GetTodaysPrayerTimes(cfg, params)
+	tomorrow, _ := GetTomorrowsPrayerTimes(cfg, params)
 
 	prayerNames := map[calc.Prayer]string{
 		calc.FAJR:    "Fajr",
@@ -93,7 +95,7 @@ func TestNextPrayerInfo_AtEndOfDay(t *testing.T) {
 		calc.ISHA:    "Isha",
 	}
 
-	name, tNext, err := nextPrayerInfo(today, tomorrow, time.UTC, prayerNames)
+	name, tNext, err := NextPrayerInfo(today, tomorrow, time.UTC, prayerNames)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -161,56 +163,56 @@ func TestFormatNextPrayerInfo(t *testing.T) {
 		name     string
 		prayer   string
 		prayerAt time.Time
-		config   *Config
+		config   *config.Config
 		expected string
 	}{
 		{
 			name:     "no countdown, no highlight",
 			prayer:   "Maghrib",
 			prayerAt: fixedNow.Add(2 * time.Hour),
-			config:   &Config{EnableCountdown: false, EnableHighlighting: false},
+			config:   &config.Config{EnableCountdown: false, EnableHighlighting: false},
 			expected: "Maghrib 20:00",
 		},
 		{
 			name:     "with countdown, no highlight",
 			prayer:   "Maghrib",
 			prayerAt: fixedNow.Add(90 * time.Minute),
-			config:   &Config{EnableCountdown: true, EnableHighlighting: false},
+			config:   &config.Config{EnableCountdown: true, EnableHighlighting: false},
 			expected: "Maghrib 19:30 (in 1 hr 30 min)\n",
 		},
 		{
 			name:     "with countdown <1hr, no highlight",
 			prayer:   "Isha",
 			prayerAt: fixedNow.Add(30 * time.Minute),
-			config:   &Config{EnableCountdown: true, EnableHighlighting: false},
+			config:   &config.Config{EnableCountdown: true, EnableHighlighting: false},
 			expected: "Isha 18:30 (in 30 min)\n",
 		},
 		{
 			name:     "highlight only",
 			prayer:   "Maghrib",
 			prayerAt: fixedNow.Add(2 * time.Hour),
-			config:   &Config{EnableCountdown: false, EnableHighlighting: true, HighlightColour: "red"},
+			config:   &config.Config{EnableCountdown: false, EnableHighlighting: true, HighlightColour: "red"},
 			expected: "\033[31mMaghrib 20:00\033[0m",
 		},
 		{
 			name:     "highlight + countdown",
 			prayer:   "Isha",
 			prayerAt: fixedNow.Add(45 * time.Minute),
-			config:   &Config{EnableCountdown: true, EnableHighlighting: true, HighlightColour: "blue"},
+			config:   &config.Config{EnableCountdown: true, EnableHighlighting: true, HighlightColour: "blue"},
 			expected: "\033[34mIsha 18:45 (in 45 min)\n\033[0m",
 		},
 		{
 			name:     "highlight fallback to green if invalid",
 			prayer:   "Fajr",
 			prayerAt: fixedNow.Add(8 * time.Hour),
-			config:   &Config{EnableCountdown: false, EnableHighlighting: true, HighlightColour: "invalidColor"},
+			config:   &config.Config{EnableCountdown: false, EnableHighlighting: true, HighlightColour: "invalidColor"},
 			expected: "\033[32mFajr 02:00\033[0m", // wraps in green by default
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := formatNextPrayerInfo(tt.prayer, tt.prayerAt, tt.config)
+			result := FormatNextPrayerInfo(tt.prayer, tt.prayerAt, tt.config)
 			if result != tt.expected {
 				t.Errorf("Expected %q, got %q", tt.expected, result)
 			}

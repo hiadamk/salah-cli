@@ -1,7 +1,9 @@
-package main
+package prayers
 
 import (
 	"fmt"
+	"salah-cli/internal/config"
+	internalUtil "salah-cli/internal/util"
 	"time"
 
 	calc "github.com/mnadev/adhango/pkg/calc"
@@ -12,28 +14,16 @@ import (
 // Dependency injection for current time (can be overridden in tests)
 var nowFunc = time.Now
 
-var ansiColors = map[string]string{
-	"black":   "\033[30m",
-	"red":     "\033[31m",
-	"green":   "\033[32m",
-	"yellow":  "\033[33m",
-	"blue":    "\033[34m",
-	"magenta": "\033[35m",
-	"cyan":    "\033[36m",
-	"white":   "\033[37m",
-	"reset":   "\033[0m",
-}
-
 func highlight(text, color string) string {
-	code, ok := ansiColors[color]
+	code, ok := internalUtil.AnsiColors[color]
 	if !ok {
-		code = ansiColors["green"] // default
+		code = internalUtil.AnsiColors["green"] // default
 	}
-	return code + text + ansiColors["reset"]
+	return code + text + internalUtil.AnsiColors["reset"]
 }
 
 // getPrayerTimesForDate returns prayer times for a given date (testable)
-func getPrayerTimesForDate(config *Config, params *calc.CalculationParameters, date time.Time) (*calc.PrayerTimes, error) {
+func getPrayerTimesForDate(config *config.Config, params *calc.CalculationParameters, date time.Time) (*calc.PrayerTimes, error) {
 	coordinates, err := util.NewCoordinates(config.Latitude, config.Longitude)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialise coordinates: %w", err)
@@ -41,18 +31,18 @@ func getPrayerTimesForDate(config *Config, params *calc.CalculationParameters, d
 	return calc.NewPrayerTimes(coordinates, data.NewDateComponents(date), params)
 }
 
-// getTodaysPrayerTimes returns today's prayer times using nowFunc (testable)
-func getTodaysPrayerTimes(config *Config, params *calc.CalculationParameters) (*calc.PrayerTimes, error) {
+// GetTodaysPrayerTimes returns today's prayer times using nowFunc (testable)
+func GetTodaysPrayerTimes(config *config.Config, params *calc.CalculationParameters) (*calc.PrayerTimes, error) {
 	return getPrayerTimesForDate(config, params, nowFunc())
 }
 
 // getTomorrowsPrayerTimes returns tomorrow's prayer times using nowFunc (testable)
-func getTomorrowsPrayerTimes(config *Config, params *calc.CalculationParameters) (*calc.PrayerTimes, error) {
+func GetTomorrowsPrayerTimes(config *config.Config, params *calc.CalculationParameters) (*calc.PrayerTimes, error) {
 	return getPrayerTimesForDate(config, params, nowFunc().AddDate(0, 0, 1))
 }
 
 // formatPrayerTimes returns a string representation of daily prayer times (testable)
-func formatPrayerTimes(times *calc.PrayerTimes, config *Config) string {
+func FormatPrayerTimes(times *calc.PrayerTimes, config *config.Config) string {
 	nowPrayer := times.CurrentPrayer(time.Now())
 	prayers := map[calc.Prayer]string{
 		calc.FAJR:    fmt.Sprintf("Fajr %s", times.Fajr.Local().Format("15:04")),
@@ -79,8 +69,8 @@ func formatPrayerTimes(times *calc.PrayerTimes, config *Config) string {
 	)
 }
 
-// nextPrayerInfo returns the name and time of the next upcoming prayer (testable)
-func nextPrayerInfo(timesToday, timesTomorrow *calc.PrayerTimes, loc *time.Location, prayerNames map[calc.Prayer]string) (string, time.Time, error) {
+// NextPrayerInfo returns the name and time of the next upcoming prayer (testable)
+func NextPrayerInfo(timesToday, timesTomorrow *calc.PrayerTimes, loc *time.Location, prayerNames map[calc.Prayer]string) (string, time.Time, error) {
 	if nowFunc().Before(timesToday.Isha.Local()) {
 		nextPrayer := timesToday.NextPrayerNow()
 		if nextPrayer == calc.NO_PRAYER {
@@ -93,7 +83,7 @@ func nextPrayerInfo(timesToday, timesTomorrow *calc.PrayerTimes, loc *time.Locat
 	return "Fajr", timesTomorrow.Fajr.Local(), nil
 }
 
-func formatNextPrayerInfo(name string, t time.Time, config *Config) string {
+func FormatNextPrayerInfo(name string, t time.Time, config *config.Config) string {
 	var result string
 	result = fmt.Sprintf("%s %s", name, t.Format("15:04"))
 	if config.EnableCountdown {

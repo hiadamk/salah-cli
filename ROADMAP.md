@@ -1,9 +1,5 @@
 ## **Features**
 
-### **Configuration & Setup**
-
-* Interactive setup wizard (`salah-cli setup`).
-
 ### **User Experience Enhancements**
 
 * Command for config documentation (`salah-cli config-docs`).
@@ -12,14 +8,8 @@
 
 ## **Project Quality**
 
-### **Code Structure**
-
-* Refactor into proper packages (`cmd`, `internal`, `pkg`) for testability & scalability.
-* Abstract dependencies (time, filesystem, environment variables) to enable mocking in tests.
-
 ### **Testing & Reliability**
 
-* Unit tests for all core logic (currently adding).
 * Integration tests with sample configs & expected outputs.
 * CI pipeline (GitHub Actions) for automated testing on each push.
 

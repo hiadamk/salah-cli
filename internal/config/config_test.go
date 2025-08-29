@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -82,7 +82,7 @@ func TestGetConfigPath_UnixFallback(t *testing.T) {
 		t.Skip("Skipping Unix path test on Windows")
 	}
 
-	path, err := getConfigPath()
+	path, err := GetConfigPath()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -99,7 +99,7 @@ func TestGetConfigPath_UnsupportedOS(t *testing.T) {
 
 	getOS = func() string { return "plan9" } // simulate unsupported OS
 
-	_, err := getConfigPath()
+	_, err := GetConfigPath()
 	if err == nil {
 		t.Fatal("expected error for unsupported OS, got nil")
 	}
@@ -273,7 +273,7 @@ func TestSaveConfig_CreatesFileAndDirectory(t *testing.T) {
 	cfg := &Config{Latitude: 51.5, Longitude: -0.1}
 
 	targetFile := filepath.Join(tmpDir, "nested", "config.json")
-	if err := saveConfig(cfg, targetFile); err != nil {
+	if err := SaveConfig(cfg, targetFile); err != nil {
 		t.Fatalf("saveConfig failed: %v", err)
 	}
 
@@ -303,12 +303,12 @@ func TestSaveConfig_AtomicOverwrite(t *testing.T) {
 	targetFile := filepath.Join(tmpDir, "config.json")
 
 	cfg1 := &Config{Latitude: 1.1, Longitude: 2.2}
-	if err := saveConfig(cfg1, targetFile); err != nil {
+	if err := SaveConfig(cfg1, targetFile); err != nil {
 		t.Fatalf("initial save failed: %v", err)
 	}
 
 	cfg2 := &Config{Latitude: 3.3, Longitude: 4.4}
-	if err := saveConfig(cfg2, targetFile); err != nil {
+	if err := SaveConfig(cfg2, targetFile); err != nil {
 		t.Fatalf("overwrite save failed: %v", err)
 	}
 
